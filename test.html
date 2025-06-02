@@ -1,0 +1,265 @@
+<!DOCTYPE html><html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>코스모스-KOSMORSE</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f0f0;
+    }
+    nav {
+      display: flex;
+      justify-content: center;
+      background-color: #007acc;
+    }
+    nav button {
+      flex: 1;
+      padding: 15px;
+      font-size: 4vw;
+      background-color: #007acc;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .page {
+      display: none;
+      padding: 20px;
+    }
+    .active {
+      display: block;
+    }
+    h1 {
+      font-size: 6vw;
+      color: #007acc;
+      margin-top: 10px;
+    }
+    iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: none;
+      margin: 20px 0;
+    }
+    p {
+      font-size: 4vw;
+      line-height: 1.6;
+    }
+    #output, #full-text {
+      font-size: 5vw;
+      margin: 5px 0;
+      text-align: center;
+      word-break: break-word;
+      white-space: normal;
+    }
+    .press-bar {
+      display: flex;
+      justify-content: space-around;
+      width: 90vw;
+      margin: 10px 0;
+    }
+    .press-bar button {
+      flex: 1;
+      height: 50px;
+      margin: 0 5px;
+      border-radius: 10px;
+      font-size: 4.5vw;
+      background-color: #007acc;
+      color: white;
+      border: none;
+    }
+    .morse-grid, .favorites, .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      max-width: 95vw;
+      margin: 5px 0;
+    }
+    .morse-item, .fav, .controls button {
+      font-size: 4vw;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: none;
+      background-color: #fff;
+      box-shadow: 0 0 2px rgba(0,0,0,0.2);
+      user-select: none;
+    }
+    .controls button {
+      background-color: #007acc;
+      color: white;
+    }
+    .toggle-group {
+      font-size: 4vw;
+      margin: 5px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <button onclick="showPage('reason')">만든 이유</button>
+    <button onclick="showPage('translator')">모스부호 번역기</button>
+  </nav>  <div id="reason" class="page active">
+    <h1>코스모스 - 만든 이유</h1>
+    <iframe src="https://www.youtube.com/embed/Oc_QMQ4QHcw" allowfullscreen></iframe>
+    <p>
+      이 번역기는 손가락 하나만 사용할 수 있는 사용자를 위해 만들어졌습니다. 실제로 Tania Finlayson은 모스부호를 이용해 세상과 소통할 수 있었고, 구글 Gboard에 영어 모스 입력 시스템이 탑재되는 계기가 되었습니다.
+    </p>
+    <p>
+      또한, 『잠수복과 나비』라는 실화 기반 책과 영화도 큰 영감을 주었습니다. 이 작품은 전신마비 환자가 한쪽 눈꺼풀로만 소통하며 삶을 기록한 감동적인 이야기입니다.
+      <br><br>
+      📘 <a href="https://naver.me/F2nxPx8M" target="_blank">잠수복과 나비 - 책 소개</a>
+    </p>
+    <p>
+      저희는 이와 같은 사례를 통해, 누구나 자신의 의지를 표현할 수 있는 방법이 필요하다고 느꼈고, 한글을 기반으로 한 모스부호 번역기를 만들게 되었습니다.
+    </p>
+  </div>  <div id="translator" class="page">
+    <h1>모스부호 한글 번역기</h1>
+    <div class="toggle-group">
+      <label for="autoSpeak">입력 시 자동 읽기</label>
+      <input type="checkbox" id="autoSpeak" checked>
+    </div>
+    <div class="press-bar">
+      <button id="dot-bar" aria-label="점 입력 버튼">짧게 (·)</button>
+      <button id="dash-bar" aria-label="선 입력 버튼">길게 (−)</button>
+    </div>
+    <div id="output">출력: </div>
+    <div id="full-text">전체 문장: </div>
+    <div class="morse-grid" id="morseGrid"></div>
+    <div class="controls">
+      <button id="undo-button">지우기</button>
+      <button id="speak-button">읽어주기</button>
+      <button id="clear-button">전체 지우기</button>
+    </div>
+    <div class="favorites">
+      <button class="fav" data-msg="도와주세요">도와주세요</button>
+      <button class="fav" data-msg="화장실">화장실</button>
+      <button class="fav" data-msg="배고파요">배고파요</button>
+      <button class="fav" data-msg="괜찮아요">괜찮아요</button>
+      <button class="fav" data-msg="감사합니다">감사합니다</button>
+    </div>
+  </div>  <script>
+    const morseMap = [
+      { char: 'ㄱ', code: '.-..' }, { char: 'ㄴ', code: '..-.' }, { char: 'ㄷ', code: '-..' },
+      { char: 'ㄹ', code: '...-' }, { char: 'ㅁ', code: '--' }, { char: 'ㅂ', code: '.--' },
+      { char: 'ㅅ', code: '--.' }, { char: 'ㅇ', code: '-.-' }, { char: 'ㅈ', code: '.--.' },
+      { char: 'ㅊ', code: '--..' }, { char: 'ㅋ', code: '-..-' }, { char: 'ㅌ', code: '--..' },
+      { char: 'ㅍ', code: '---' }, { char: 'ㅎ', code: '.---' },
+      { char: 'ㅏ', code: '.' }, { char: 'ㅑ', code: '..' }, { char: 'ㅓ', code: '-' },
+      { char: 'ㅕ', code: '...' }, { char: 'ㅗ', code: '.-' }, { char: 'ㅛ', code: '-.' },
+      { char: 'ㅜ', code: '....' }, { char: 'ㅠ', code: '.-.' }, { char: 'ㅡ', code: '-..' },
+      { char: 'ㅣ', code: '..-' }
+    ];
+
+    const morseToHangul = Object.fromEntries(morseMap.map(m => [m.code, m.char]));
+
+    const chosungList = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+    const jungsungList = ['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ'];
+    const jongsungList = ['','ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+    const chosungMap = Object.fromEntries(chosungList.map((c, i) => [c, i]));
+    const jungsungMap = Object.fromEntries(jungsungList.map((c, i) => [c, i]));
+    const jongsungMap = Object.fromEntries(jongsungList.map((c, i) => [c, i]));
+
+    let buffer = [];
+    let sentence = "";
+    let signal = "";
+
+    function updateText() {
+      document.getElementById("full-text").textContent = "전체 문장: " + sentence;
+    }
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ko-KR';
+      window.speechSynthesis.speak(utter);
+    }
+
+    function flushBuffer() {
+      if (buffer.length >= 2) {
+        const c = buffer[0], v = buffer[1], f = buffer[2] || '';
+        if (chosungMap[c] !== undefined && jungsungMap[v] !== undefined && jongsungMap[f] !== undefined) {
+          const code = 0xAC00 + chosungMap[c] * 588 + jungsungMap[v] * 28 + jongsungMap[f];
+          sentence += String.fromCharCode(code);
+          buffer = [];
+        }
+      } else {
+        sentence += buffer.join('');
+        buffer = [];
+      }
+    }
+
+    function handleCharInput(char) {
+      if (chosungMap[char] !== undefined && buffer.length === 0) {
+        buffer.push(char);
+      } else if (jungsungMap[char] !== undefined && buffer.length === 1) {
+        buffer.push(char);
+      } else if (jongsungMap[char] !== undefined && buffer.length === 2) {
+        buffer.push(char);
+        flushBuffer();
+      } else {
+        flushBuffer();
+        sentence += char;
+      }
+      updateText();
+      if (document.getElementById("autoSpeak").checked) speak(char);
+    }
+
+    function handleSignal(sym) {
+      signal += sym;
+      document.getElementById("output").textContent = "입력 중: " + signal;
+      clearTimeout(window._morseTimeout);
+      window._morseTimeout = setTimeout(() => {
+        const result = morseToHangul[signal] || "?";
+        document.getElementById("output").textContent = "출력: " + result;
+        if (result !== "?") handleCharInput(result);
+        signal = "";
+      }, 1000);
+    }
+
+    document.getElementById("dot-bar").addEventListener("click", () => handleSignal("."));
+    document.getElementById("dash-bar").addEventListener("click", () => handleSignal("-"));
+
+    document.getElementById("undo-button").addEventListener("click", () => {
+      sentence = sentence.slice(0, -1);
+      updateText();
+    });
+
+    document.getElementById("clear-button").addEventListener("click", () => {
+      sentence = "";
+      buffer = [];
+      updateText();
+    });
+
+    document.getElementById("speak-button").addEventListener("click", () => {
+      speak(sentence);
+    });
+
+    document.querySelectorAll(".fav").forEach(btn => {
+      btn.addEventListener("click", () => {
+        flushBuffer();
+        sentence += btn.dataset.msg + " ";
+        updateText();
+        if (document.getElementById("autoSpeak").checked) speak(btn.dataset.msg);
+      });
+    });
+
+    const morseGrid = document.getElementById("morseGrid");
+    morseMap.forEach(({ char, code }) => {
+      const btn = document.createElement("div");
+      btn.className = "morse-item";
+      btn.dataset.char = char;
+      btn.innerText = `${char} (${code})`;
+      btn.addEventListener("click", () => handleCharInput(char));
+      morseGrid.appendChild(btn);
+    });
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+  </script></body>
+</html>
